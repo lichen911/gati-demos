@@ -1,0 +1,1 @@
+The joke machine is an ESP32-C3 Super Mini that will tell jokes. It will have a hard coded list of jokes and answers. It will output to a small 0.96" OLED display. When it boots it will load one of the joke questions. When you press a 6x6 mm tactile button it will show the joke answer. Another press will show the next joke, and so on.
