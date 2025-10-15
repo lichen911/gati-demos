@@ -1,0 +1,66 @@
+Required CircuitPython Libraries for Weather Station
+=====================================================
+
+Download the CircuitPython Library Bundle from:
+https://circuitpython.org/libraries
+
+Match the bundle version to your CircuitPython version (e.g., 9.x bundle for CircuitPython 9.x)
+
+Copy these files/folders to the lib/ folder on your CIRCUITPY drive:
+
+Required Libraries:
+-------------------
+1. adafruit_bme280.mpy (or adafruit_bme280/ folder)
+   - BME280 environmental sensor driver
+   - Reads temperature, humidity, and pressure
+
+2. adafruit_tm1637.py
+   - TM1637 4-digit 7-segment display driver
+   - Controls the LED display
+
+3. adafruit_bus_device/ (folder)
+   - Required dependency for BME280
+   - Provides I2C/SPI device helpers
+
+4. adafruit_register/ (folder)
+   - Required dependency for BME280
+   - Provides register management for sensors
+
+Final Structure on CIRCUITPY Drive:
+------------------------------------
+CIRCUITPY/
+├── code.py                      # Your main program (from this repo)
+├── lib/
+│   ├── adafruit_bme280.mpy     # BME280 sensor library
+│   ├── adafruit_tm1637.py      # TM1637 display library
+│   ├── adafruit_bus_device/    # Dependency folder
+│   │   ├── __init__.py
+│   │   ├── i2c_device.py
+│   │   └── spi_device.py
+│   └── adafruit_register/      # Dependency folder
+│       ├── __init__.py
+│       ├── i2c_bit.py
+│       ├── i2c_bits.py
+│       └── i2c_struct.py
+└── README.md                    # Project documentation
+
+Installation Steps:
+-------------------
+1. Install CircuitPython on RP2040 (see README.md)
+2. Download the library bundle
+3. Extract the bundle ZIP file
+4. Copy the 4 items listed above from bundle's lib/ folder to your CIRCUITPY/lib/ folder
+5. Copy code.py from this repo to CIRCUITPY/code.py
+6. Board will auto-reload and run the program
+
+Verification:
+-------------
+If libraries are missing, you'll see an ImportError in the serial console.
+Connect to serial (115200 baud) to see error messages and debug output.
+
+Troubleshooting:
+----------------
+- "No module named 'adafruit_bme280'" → Copy adafruit_bme280.mpy to lib/
+- "No module named 'adafruit_bus_device'" → Copy adafruit_bus_device/ folder to lib/
+- "No module named 'adafruit_tm1637'" → Copy adafruit_tm1637.py to lib/
+- CircuitPython version mismatch → Download matching library bundle version

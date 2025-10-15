@@ -6,10 +6,12 @@ Displays jokes on 0.96" OLED display with button navigation
 from machine import Pin, SoftI2C
 from ssd1306 import SSD1306_I2C
 import time
+import random
 
 # Configuration
 AUTO_MODE = True  # Set to True for auto-cycling, False for button-only mode
 AUTO_DISPLAY_TIME = 5  # Seconds to display each question/answer in auto mode
+RANDOM_MODE = False  # Set to True for random jokes, False for sequential order
 
 # Hardware configuration
 I2C_SDA_PIN = 8  # GPIO8 for SDA
@@ -23,6 +25,9 @@ JOKES = [
     ("Why did the cookie go to the doctor?",
      "Because it felt crumbly!"),
 
+    ("Why do seagulls fly over the ocean?",
+     "Because if they flew over the bay they'd be called bagels"),
+     
     ("What do you call a bear with no teeth?",
      "A gummy bear!"),
 
@@ -68,9 +73,6 @@ JOKES = [
     ("What did one wall say to the other wall?",
      "I'll meet you at the corner!"),
 
-    ("Why did the tomato turn red?",
-     "Because it saw the salad dressing!"),
-
     ("What do you call a fake noodle?",
      "An impasta!"),
 
@@ -97,9 +99,6 @@ JOKES = [
 
     ("What do you call a dinosaur with an extensive vocabulary?",
      "A thesaurus!"),
-
-    ("Why don't melons get married?",
-     "Because they cantaloupe!"),
 
     ("What did the zero say to the eight?",
      "Nice belt!"),
@@ -169,6 +168,9 @@ JOKES = [
 
     ("What do you call a fish wearing a crown?",
      "A king fish!"),
+
+    ("What did the ocean say to the shore?",
+     "Nothing, it just saved"),
 ]
 
 class JokeMachine:
@@ -258,8 +260,16 @@ class JokeMachine:
         self.showing_answer = True
 
     def next_joke(self):
-        """Move to the next joke, wrapping around"""
-        self.current_joke_index = (self.current_joke_index + 1) % len(JOKES)
+        """Move to the next joke (sequential or random based on config)"""
+        if RANDOM_MODE:
+            # Pick a random joke (avoid showing the same joke twice in a row)
+            new_index = random.randint(0, len(JOKES) - 1)
+            while new_index == self.current_joke_index and len(JOKES) > 1:
+                new_index = random.randint(0, len(JOKES) - 1)
+            self.current_joke_index = new_index
+        else:
+            # Sequential mode - wrap around
+            self.current_joke_index = (self.current_joke_index + 1) % len(JOKES)
         self.show_question()
 
     def handle_button_press(self):
@@ -309,8 +319,9 @@ class JokeMachine:
         self.show_question()
 
         mode_str = "AUTO" if AUTO_MODE else "BUTTON"
+        order_str = "RANDOM" if RANDOM_MODE else "SEQUENTIAL"
         print(f"Joke Machine started in {mode_str} mode!")
-        print(f"Loaded {len(JOKES)} jokes")
+        print(f"Loaded {len(JOKES)} jokes ({order_str} order)")
         if AUTO_MODE:
             print(f"Auto-cycling every {AUTO_DISPLAY_TIME} seconds")
 
