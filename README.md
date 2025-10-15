@@ -1,82 +1,160 @@
 # Gati Demos - Embedded Hardware Projects
 
-A collection of fun embedded hardware projects targeting microcontrollers like ESP32-C3 and RP2040. Each "machine" is a self-contained project with its own hardware configuration and functionality.
+A collection of fun embedded hardware projects for learning and demonstration. Each "machine" is a self-contained project targeting either ESP32-C3 or RP2040 microcontrollers.
 
-## Projects
+## Projects Overview
 
-### 🎵 Song Machine
-**Hardware:** RP2040 (CircuitPython)
-- Multi-song player with passive buzzers
-- Dual buzzer support for increased volume (GPIO2 and GPIO4)
-- Features 6 songs including Super Mario Bros, Tetris, Star Wars Imperial March, Hedwig's Theme, Minecraft Pigstep, and an original composition
-- Continuous playback with automatic song rotation
+### 😄 [Joke Machine](joke_machine/)
+**Platform:** ESP32-C3 Super Mini | **Language:** MicroPython
 
-### 😄 Joke Machine
-**Hardware:** ESP32-C3 Super Mini
-- 0.96" OLED display for output
-- 6x6 mm tactile button for user input
-- Displays jokes from a hard-coded list
-- Interactive: button press reveals punchline, next press advances to next joke
+A joke-telling device with OLED display and button control. Features 50+ jokes, auto-cycling mode, random selection, and inverted banner headers.
 
-### 🚦 Traffic Light
-**Hardware:** TBD
-- Status: In development
+**Hardware:** 0.96" OLED display (I2C), 6x6mm tactile button
+**Key Features:** Auto-cycle mode, random jokes, button control
 
-### ⛅ Weather Machine
-**Hardware:** TBD
-- Status: In development
+[📖 Read full documentation →](joke_machine/README.md)
+
+---
+
+### 🎵 [Song Machine](song_machine/)
+**Platform:** RP2040 | **Language:** CircuitPython
+
+Multi-song music player using dual passive buzzers. Plays 6 iconic songs with accurate melodies and timing.
+
+**Hardware:** 2x passive buzzers (GPIO2, GPIO4)
+**Key Features:** Dual buzzer volume boost, 6-song playlist, automatic rotation
+
+**Playlist:** Super Mario Bros, Tetris, Star Wars Imperial March, Harry Potter, Minecraft Pigstep, Happy Bounce (original)
+
+[📖 Read full documentation →](song_machine/README.md)
+
+---
+
+### 🚦 [Traffic Light](traffic_light/)
+**Platform:** RP2040 | **Language:** CircuitPython
+
+Realistic traffic light simulator with configurable timing. Great for learning GPIO control and sequential logic.
+
+**Hardware:** 3x LEDs (red, yellow, green), 3x 220Ω resistors (GPIO6, GPIO7, GPIO8)
+**Key Features:** Realistic sequence timing, serial debug output, customizable durations
+
+[📖 Read full documentation →](traffic_light/README.md)
+
+---
+
+### ⛅ [Weather Machine](weather_machine/)
+**Platform:** RP2040 | **Language:** CircuitPython
+
+Weather station displaying real-time temperature, humidity, and barometric pressure on a 4-digit 7-segment display.
+
+**Hardware:** BME280 sensor (I2C), TM1637 4-digit display
+**Key Features:** Rotating display modes, real-time sensor readings, interactive demos
+
+[📖 Read full documentation →](weather_machine/README.md)
 
 ## Hardware Platforms
 
 ### ESP32-C3 Super Mini
-- Low-cost microcontroller with WiFi/BLE
-- Typically programmed using Arduino IDE or PlatformIO
-- Used in: Joke Machine
+- Low-cost microcontroller with WiFi and Bluetooth LE
+- Programmed using MicroPython
+- 3.3V logic level, USB-C interface
+- **Used in:** Joke Machine
 
 ### RP2040
-- Dual-core ARM Cortex-M0+ microcontroller
-- Runs CircuitPython for rapid prototyping
-- Used in: Song Machine
+- Dual-core ARM Cortex-M0+ microcontroller by Raspberry Pi Foundation
+- Runs CircuitPython for rapid prototyping and easy development
+- 3.3V logic level, micro-USB interface
+- Flexible PWM, I2C, and GPIO capabilities
+- **Used in:** Song Machine, Traffic Light, Weather Machine
 
-## Getting Started
+## Quick Start
 
-### Prerequisites
-- **For ESP32-C3 projects:** Arduino IDE or PlatformIO
-- **For RP2040 projects:** CircuitPython installed on your board
-- USB cable for programming and power
+1. **Choose a project** - Click any project link above to view full documentation
+2. **Gather hardware** - Each project README lists required components
+3. **Set up software** - Install CircuitPython or MicroPython as needed
+4. **Follow wiring diagram** - Connect components according to project README
+5. **Upload code** - Copy code files to your microcontroller
+6. **Power on and enjoy!**
 
-### Project Structure
 Each project directory contains:
-- Source code (`.ino` for Arduino, `code.py` for CircuitPython)
-- Project-specific README with hardware details
-- Wiring diagrams (where applicable)
+- Complete source code (`main.py` or `code.py`)
+- Detailed README with wiring diagrams and setup instructions
+- Configuration options and customization guides
 
-### Running a Project
-1. Navigate to the project directory
-2. Follow the project-specific README for hardware setup
-3. Upload/copy the code to your microcontroller
-4. Connect via serial to see debug output (optional)
+## Development Tools
 
-## Development
+### For ESP32-C3 (MicroPython)
+- **Thonny IDE** - Beginner-friendly with built-in REPL
+- **esptool** - Firmware flashing utility
+- **ampy / rshell** - File transfer tools
 
-### Adding a New Machine
-1. Create a new directory: `your_machine/`
-2. Add hardware documentation
-3. Implement the code
-4. Update this README with project details
+### For RP2040 (CircuitPython)
+- **Drag-and-drop** - Simply copy files to CIRCUITPY drive
+- **Mu Editor** - Simple Python editor with serial console
+- **Thonny** - Works with CircuitPython too
 
-### Tools
-- **Arduino IDE** - For ESP32-C3 development
-- **PlatformIO** - Alternative IDE for embedded development
-- **Thonny/Mu** - For CircuitPython development
-- **Serial Monitor** - For debugging via USB
+### Universal Tools
+- **Serial monitor** - View debug output (screen, minicom, PuTTY)
+- **Multimeter** - Essential for debugging hardware issues
+- **Breadboard** - Quick prototyping without soldering
 
-## Resources
+## Learning Resources
 
-- [ESP32-C3 Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/)
-- [CircuitPython Documentation](https://docs.circuitpython.org/)
-- [RP2040 Datasheet](https://datasheets.raspberrypi.com/rp2040/rp2040-datasheet.pdf)
+### Documentation
+- [CircuitPython Documentation](https://docs.circuitpython.org/) - Official CircuitPython guide
+- [MicroPython Documentation](https://docs.micropython.org/) - MicroPython reference
+- [ESP32-C3 Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/) - ESP32-C3 technical docs
+- [RP2040 Datasheet](https://datasheets.raspberrypi.com/rp2040/rp2040-datasheet.pdf) - Hardware specifications
 
-## Author
+### Tutorials
+- [Adafruit Learn](https://learn.adafruit.com/) - Excellent CircuitPython tutorials
+- [CircuitPython Essentials](https://learn.adafruit.com/circuitpython-essentials) - Getting started guide
+- [Raspberry Pi Pico Getting Started](https://www.raspberrypi.com/documentation/microcontrollers/raspberry-pi-pico.html)
 
-Created with passion for embedded systems and hardware hacking!
+## Project Ideas & Expansions
+
+These projects are just starting points! Consider these enhancements:
+
+- **Add WiFi connectivity** - Report sensor data to the cloud, sync jokes from web API
+- **Combine projects** - Use weather data to select appropriate joke mood
+- **Add displays** - OLED displays for richer visual feedback
+- **Buttons and controls** - Add interactivity with buttons, potentiometers, or encoders
+- **Sound and music** - Expand song library, add sound effects to other projects
+- **Logging and analytics** - Store data on SD cards, create data visualizations
+- **Battery power** - Make projects portable with LiPo batteries and charging circuits
+
+## Repository Structure
+
+```
+gati-demos/
+├── README.md              # This file - project overview
+├── .gitignore            # Git ignore patterns
+├── CLAUDE.md             # AI assistant guidance
+├── joke_machine/         # ESP32-C3 joke display
+│   ├── README.md
+│   ├── main.py
+│   └── ssd1306.py
+├── song_machine/        # RP2040 music player
+│   ├── README.md
+│   └── code.py
+├── traffic_light/       # RP2040 LED sequencer
+│   ├── README.md
+│   └── code.py
+└── weather_machine/     # RP2040 weather station
+    ├── README.md
+    ├── code.py
+    └── lib/             # Required libraries
+```
+
+## About
+
+This collection demonstrates various embedded hardware concepts through fun, hands-on projects. Each project is designed to be educational, approachable, and easy to customize.
+
+Perfect for:
+- Learning embedded programming
+- Classroom demonstrations
+- Maker workshops and hackathons
+- Personal skill development
+- Gift projects for curious minds
+
+Built with passion for embedded systems and hardware hacking!
