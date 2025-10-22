@@ -10,13 +10,14 @@ import random
 
 # Configuration
 AUTO_MODE = True  # Set to True for auto-cycling, False for button-only mode
-AUTO_DISPLAY_TIME = 5  # Seconds to display each question/answer in auto mode
+AUTO_DISPLAY_TIME = 7  # Seconds to display each question/answer in auto mode
 RANDOM_MODE = False  # Set to True for random jokes, False for sequential order
 
 # Hardware configuration
 I2C_SDA_PIN = 8  # GPIO8 for SDA
 I2C_SCL_PIN = 9  # GPIO9 for SCL
-BUTTON_PIN = 10  # GPIO10 for button input
+FORWARD_BUTTON_PIN = 2  # GPIO2 for forward navigation
+BACK_BUTTON_PIN = 3  # GPIO3 for back navigation
 DISPLAY_WIDTH = 128
 DISPLAY_HEIGHT = 64
 
@@ -33,6 +34,9 @@ JOKES = [
 
     ("Why did the banana go to the doctor?",
      "Because it wasn't peeling well!"),
+
+    ("Why was 6 afraid of 7?",
+     "Because 7, 8, 9"),
 
     ("What do you call cheese that isn't yours?",
      "Nacho cheese!"),
@@ -170,7 +174,7 @@ JOKES = [
      "A king fish!"),
 
     ("What did the ocean say to the shore?",
-     "Nothing, it just saved"),
+     "Nothing, it just waved"),
 ]
 
 class JokeMachine:
@@ -179,14 +183,17 @@ class JokeMachine:
         self.i2c = SoftI2C(scl=Pin(I2C_SCL_PIN), sda=Pin(I2C_SDA_PIN))
         self.display = SSD1306_I2C(DISPLAY_WIDTH, DISPLAY_HEIGHT, self.i2c)
 
-        # Initialize button with pull-up resistor
-        self.button = Pin(BUTTON_PIN, Pin.IN, Pin.PULL_UP)
+        # Initialize forward and back buttons with pull-up resistors
+        self.forward_button = Pin(FORWARD_BUTTON_PIN, Pin.IN, Pin.PULL_UP)
+        self.back_button = Pin(BACK_BUTTON_PIN, Pin.IN, Pin.PULL_UP)
 
         # State management
         self.current_joke_index = 0
         self.showing_answer = False
-        self.last_button_state = 1
-        self.debounce_time = 0
+        self.last_forward_button_state = 1
+        self.last_back_button_state = 1
+        self.forward_debounce_time = 0
+        self.back_debounce_time = 0
         self.last_auto_change_time = time.ticks_ms()
 
     def wrap_text(self, text, max_width=14):
@@ -272,28 +279,57 @@ class JokeMachine:
             self.current_joke_index = (self.current_joke_index + 1) % len(JOKES)
         self.show_question()
 
+    def previous_joke(self):
+        """Move to the previous joke (sequential only - random mode uses random selection)"""
+        if RANDOM_MODE:
+            # In random mode, just pick a random joke
+            new_index = random.randint(0, len(JOKES) - 1)
+            while new_index == self.current_joke_index and len(JOKES) > 1:
+                new_index = random.randint(0, len(JOKES) - 1)
+            self.current_joke_index = new_index
+        else:
+            # Sequential mode - wrap around backwards
+            self.current_joke_index = (self.current_joke_index - 1) % len(JOKES)
+        self.show_question()
+
     def handle_button_press(self):
-        """Handle button press with debouncing"""
+        """Handle forward and back button presses with debouncing"""
         current_time = time.ticks_ms()
 
-        # Read button state (0 = pressed due to pull-up)
-        button_state = self.button.value()
+        # Read button states (0 = pressed due to pull-up)
+        forward_button_state = self.forward_button.value()
+        back_button_state = self.back_button.value()
 
-        # Detect falling edge (button press) with debounce
-        if button_state == 0 and self.last_button_state == 1:
-            if time.ticks_diff(current_time, self.debounce_time) > 200:
-                self.debounce_time = current_time
+        # Handle forward button press
+        if forward_button_state == 0 and self.last_forward_button_state == 1:
+            if time.ticks_diff(current_time, self.forward_debounce_time) > 200:
+                self.forward_debounce_time = current_time
                 # Reset auto timer when button is pressed
                 self.last_auto_change_time = current_time
 
                 if self.showing_answer:
-                    # If showing answer, go to next joke
+                    # If showing answer, go to next joke question
                     self.next_joke()
                 else:
                     # If showing question, reveal answer
                     self.show_answer()
 
-        self.last_button_state = button_state
+        # Handle back button press
+        if back_button_state == 0 and self.last_back_button_state == 1:
+            if time.ticks_diff(current_time, self.back_debounce_time) > 200:
+                self.back_debounce_time = current_time
+                # Reset auto timer when button is pressed
+                self.last_auto_change_time = current_time
+
+                if self.showing_answer:
+                    # If showing answer, go back to the question
+                    self.show_question()
+                else:
+                    # If showing question, go to previous joke question
+                    self.previous_joke()
+
+        self.last_forward_button_state = forward_button_state
+        self.last_back_button_state = back_button_state
 
     def handle_auto_mode(self):
         """Handle automatic cycling through jokes"""
