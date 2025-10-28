@@ -7,11 +7,13 @@ on a TM1637 4-digit 7-segment display in rotating mode.
 import time
 import board
 import busio
+import digitalio
 from adafruit_bme280 import basic as adafruit_bme280
 from tm1637_display import TM1637Display
 
 # Configuration
-DISPLAY_CYCLE_TIME = 10    # Seconds to show each reading
+AUTO_CYCLE_MODES = False   # True for auto-cycling, False for button control
+DISPLAY_CYCLE_TIME = 10    # Seconds to show each reading (when auto-cycling)
 SENSOR_READ_INTERVAL = 2   # Seconds between sensor readings
 DISPLAY_BRIGHTNESS = 6     # 0-6, with 6 being brightest
 USE_FAHRENHEIT = True      # True for °F, False for °C
@@ -24,6 +26,9 @@ I2C_SCL_PIN = board.GP5    # I2C0 SCL
 # TM1637 Configuration
 TM1637_CLK_PIN = board.GP2
 TM1637_DIO_PIN = board.GP3
+
+# Button Configuration
+MODE_BUTTON_PIN = board.GP6
 
 # Display modes
 MODE_TEMPERATURE = 0
@@ -60,8 +65,22 @@ except Exception as e:
     print(f"✗ Error initializing TM1637: {e}")
     raise
 
+# Initialize mode button
+try:
+    print(f"Initializing mode button on GP6...")
+    mode_button = digitalio.DigitalInOut(MODE_BUTTON_PIN)
+    mode_button.direction = digitalio.Direction.INPUT
+    mode_button.pull = digitalio.Pull.UP
+    print("✓ Mode button initialized")
+except Exception as e:
+    print(f"✗ Error initializing button: {e}")
+    raise
+
 print("\nWeather Station ready!")
-print(f"Display cycles every {DISPLAY_CYCLE_TIME}s")
+if AUTO_CYCLE_MODES:
+    print(f"Mode: AUTO-CYCLING (every {DISPLAY_CYCLE_TIME}s)")
+else:
+    print(f"Mode: BUTTON-CONTROLLED (press GP6 to cycle)")
 print(f"Sensor reads every {SENSOR_READ_INTERVAL}s")
 print("-" * 50)
 
@@ -69,6 +88,9 @@ print("-" * 50)
 current_mode = MODE_TEMPERATURE
 last_mode_change = time.monotonic()
 last_sensor_read = 0
+
+# Button state tracking
+last_button_state = True  # True = not pressed (pull-up)
 
 # Sensor readings
 temperature = 0
@@ -120,11 +142,35 @@ try:
                 print(f"Error reading sensor: {e}")
                 display.print("Err ")
 
-        # Cycle display mode at interval
-        if current_time - last_mode_change >= DISPLAY_CYCLE_TIME:
+        # Check for button press (falling edge detection)
+        current_button_state = mode_button.value
+        if last_button_state and not current_button_state:
+            # Button pressed - cycle to next mode
+            current_mode = (current_mode + 1) % 3
+            print(f"\n→ Display mode: {mode_names[current_mode]} (button press)")
+
+            # Display appropriate value
+            if current_mode == MODE_TEMPERATURE:
+                display.print(f"{temperature:3d}F")
+                print(f"  Showing: {temperature}{'°F' if USE_FAHRENHEIT else '°C'}")
+            elif current_mode == MODE_HUMIDITY:
+                display.print(f"H{humidity:3d}")
+                print(f"  Showing: {humidity}%")
+            elif current_mode == MODE_PRESSURE:
+                display.print(f"{pressure:4d}")
+                print(f"  Showing: {pressure} hPa")
+
+            # Wait for button release to prevent multiple triggers
+            while not mode_button.value:
+                time.sleep(0.05)
+
+        last_button_state = current_button_state
+
+        # Auto-cycle display mode at interval (only if AUTO_CYCLE_MODES is enabled)
+        if AUTO_CYCLE_MODES and current_time - last_mode_change >= DISPLAY_CYCLE_TIME:
             # Move to next mode
             current_mode = (current_mode + 1) % 3
-            print(f"\n→ Display mode: {mode_names[current_mode]}")
+            print(f"\n→ Display mode: {mode_names[current_mode]} (auto-cycle)")
 
             # Display appropriate value
             if current_mode == MODE_TEMPERATURE:
@@ -140,7 +186,7 @@ try:
             last_mode_change = current_time
 
         # Small delay to prevent busy-waiting
-        time.sleep(0.1)
+        time.sleep(0.05)
 
 except KeyboardInterrupt:
     print("\n\nWeather Station stopped by user")
