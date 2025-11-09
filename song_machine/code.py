@@ -132,8 +132,7 @@ mario_theme = [
     (NOTE_REST, EIGHTH),
 ]
 
-# Happy Bounce - Original upbeat melody with high frequencies
-# Fast tempo, high pitched, cheerful and energetic
+# Happy Bounce
 happy_bounce = [
     # Pattern 1: Ascending happy melody
     (NOTE_C6, FAST_EIGHTH),
@@ -181,7 +180,7 @@ happy_bounce = [
     (NOTE_C6, FAST_HALF),
 ]
 
-# Tetris Theme (Korobeiniki) - Fast Russian folk melody
+# Tetris Theme
 tetris_theme = [
     # Main melody line 1
     (NOTE_E5, FAST_QUARTER),
@@ -228,9 +227,8 @@ tetris_theme = [
     (NOTE_A4, FAST_QUARTER),
 ]
 
-# Star Wars Imperial March - Powerful and iconic
+# Star Wars Imperial March
 imperial_march = [
-    # "Dum dum dum, dum-da-dum, dum-da-dum"
     (NOTE_G4, QUARTER),
         (NOTE_REST, SIXTEENTH),
     (NOTE_G4, QUARTER),
@@ -271,7 +269,7 @@ imperial_march = [
     (NOTE_REST, EIGHTH),
 ]
 
-# Hedwig's Theme (Harry Potter) - Magical and mysterious
+# Hedwig's Theme
 hedwigs_theme = [
     # Opening motif
     (NOTE_B4, FAST_EIGHTH),
@@ -313,7 +311,7 @@ hedwigs_theme = [
     (NOTE_E5, FAST_HALF),
 ]
 
-# The Legend of Zelda Main Theme - Opening section
+# The Legend of Zelda Main Theme
 zelda_theme = [
     # Opening fanfare
     (NOTE_A4, QUARTER),
@@ -372,7 +370,7 @@ zelda_theme = [
     (NOTE_REST, QUARTER),
 ]
 
-# Minecraft Pigstep - Funky Nether track
+# Minecraft Pigstep
 pigstep = [
     # Intro - Funky bass-like pattern
     (NOTE_D4, FAST_EIGHTH),
@@ -446,21 +444,16 @@ songs = [
 ]
 
 def play_note(frequency, duration, check_interval=0.05):
-    """
-    Play a note for the specified duration on both buzzers.
-    Checks for button presses during playback.
-    Returns: 'continue', 'next', or 'replay'
-    """
     if frequency == NOTE_REST:
-        buzzer1.duty_cycle = 0  # Silence
+        buzzer1.duty_cycle = 0
         buzzer2.duty_cycle = 0
     else:
         buzzer1.frequency = frequency
         buzzer2.frequency = frequency
-        buzzer1.duty_cycle = 32768  # 50% duty cycle
+        buzzer1.duty_cycle = 32768  # 50% duty cycle (32768 out of 65535)
         buzzer2.duty_cycle = 32768
 
-    # Sleep in small intervals and check buttons
+    # Play note in small chunks so we can check buttons frequently
     elapsed = 0
     while elapsed < duration:
         sleep_time = min(check_interval, duration - elapsed)
@@ -468,132 +461,78 @@ def play_note(frequency, duration, check_interval=0.05):
         elapsed += sleep_time
 
         # Check for button presses during playback
-        if not next_button.value:  # Next button pressed
+        if not next_button.value:  # Button pulled low = pressed
             return 'next'
-        if not replay_button.value:  # Replay button pressed
+        if not replay_button.value:
             return 'replay'
 
     return 'continue'
 
 def play_song(song_index):
-    """
-    Play the song at the given index.
-    Returns: 'finished', 'next', or 'replay' based on how playback ended
-    """
     song_name, melody = songs[song_index]
-    print(f"\nNow Playing: {song_name}")
-    print("-" * 40)
 
     for note, duration in melody:
         result = play_note(note, duration)
 
         if result == 'next':
-            # Next button pressed during playback
-            buzzer1.duty_cycle = 0
+            buzzer1.duty_cycle = 0  # Turn off sound
             buzzer2.duty_cycle = 0
-            print(f"⏭ Skipping to next song...")
-            # Wait for button release
+            # Wait for user to release button (debouncing)
             while not next_button.value:
                 time.sleep(0.05)
             return 'next'
 
         elif result == 'replay':
-            # Replay button pressed during playback
             buzzer1.duty_cycle = 0
             buzzer2.duty_cycle = 0
-            print(f"⏮ Restarting song...")
-            # Wait for button release
             while not replay_button.value:
                 time.sleep(0.05)
             return 'replay'
 
-    # Song completed normally
+    # Song finished - turn off buzzers
     buzzer1.duty_cycle = 0
     buzzer2.duty_cycle = 0
-    print(f"✓ {song_name} complete")
     return 'finished'
 
-print("Song Machine - Button-Controlled Player")
-print("=" * 40)
-print(f"Loaded {len(songs)} songs:")
-for i, (name, _) in enumerate(songs):
-    print(f"  {i+1}. {name}")
-print()
-print("Controls:")
-print("  GP7 (Next):   Advance to next song")
-print("                (Can interrupt during playback)")
-print("  GP8 (Replay): Play/restart current song")
-print("                (Can restart during playback)")
-print()
-print("Press a button to start playing...")
-print("-" * 40)
+def button_handler(button, advance_song=False):
+    global current_song_index
 
-# Track current song index
+    if advance_song:
+        current_song_index = (current_song_index + 1) % len(songs)  # Wraparound to first song
+
+    # Keep playing songs until user stops pressing buttons
+    while True:
+        result = play_song(current_song_index)
+
+        if result == 'next':
+            current_song_index = (current_song_index + 1) % len(songs)
+            continue  # Play the new song
+        elif result == 'replay':
+            continue  # Restart current song
+        else:  # 'finished'
+            break  # Song done, exit to main loop
+
+    # Wait for button release (debouncing)
+    while not button.value:
+        time.sleep(0.05)
+
 current_song_index = 0
-
-# Button state tracking for debouncing
-last_next_state = True
+last_next_state = True  # Track previous button states for edge detection
 last_replay_state = True
 
-# Main loop - wait for button presses
 while True:
-    # Read button states
     next_state = next_button.value
     replay_state = replay_button.value
 
-    # Detect NEXT button press (falling edge) when not playing
+    # Detect next button press
     if last_next_state and not next_state:
-        # Advance to next song with wraparound
-        current_song_index = (current_song_index + 1) % len(songs)
-        print(f"\n[Next Song - {current_song_index + 1}/{len(songs)}]")
+        button_handler(next_button, advance_song=True)
 
-        # Play song and handle interrupts
-        while True:
-            result = play_song(current_song_index)
-
-            if result == 'next':
-                # Next button pressed during playback - advance and continue
-                current_song_index = (current_song_index + 1) % len(songs)
-                print(f"[Next Song - {current_song_index + 1}/{len(songs)}]")
-                continue  # Play the new song
-            elif result == 'replay':
-                # Replay button pressed during playback - restart song
-                continue  # Play same song again
-            else:  # 'finished'
-                # Song finished normally
-                break
-
-        # Wait for button release
-        while not next_button.value:
-            time.sleep(0.05)
-
-    # Detect REPLAY button press (falling edge) when not playing
+    # Detect replay button press
     if last_replay_state and not replay_state:
-        print(f"\n[Playing Song - {current_song_index + 1}/{len(songs)}]")
+        button_handler(replay_button, advance_song=False)
 
-        # Play song and handle interrupts
-        while True:
-            result = play_song(current_song_index)
-
-            if result == 'next':
-                # Next button pressed during playback - advance and continue
-                current_song_index = (current_song_index + 1) % len(songs)
-                print(f"[Next Song - {current_song_index + 1}/{len(songs)}]")
-                continue  # Play the new song
-            elif result == 'replay':
-                # Replay button pressed during playback - restart song
-                continue  # Play same song again
-            else:  # 'finished'
-                # Song finished normally
-                break
-
-        # Wait for button release
-        while not replay_button.value:
-            time.sleep(0.05)
-
-    # Update button states
+    # Remember button states for next iteration
     last_next_state = next_state
     last_replay_state = replay_state
-
-    # Small delay to avoid busy-waiting
     time.sleep(0.05)
