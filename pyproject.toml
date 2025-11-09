@@ -1,0 +1,7 @@
+[project]
+name = "gati-demos"
+version = "0.1.0"
+description = "Demos for presenting during the Great American Teach-In"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
