@@ -8,11 +8,6 @@ from ssd1306 import SSD1306_I2C
 import time
 import random
 
-# Configuration
-AUTO_MODE = True  # Set to True for auto-cycling, False for button-only mode
-AUTO_DISPLAY_TIME = 7  # Seconds to display each question/answer in auto mode
-RANDOM_MODE = False  # Set to True for random jokes, False for sequential order
-
 # Hardware configuration
 I2C_SDA_PIN = 8  # GPIO8 for SDA
 I2C_SCL_PIN = 9  # GPIO9 for SCL
@@ -27,8 +22,8 @@ JOKES = [
      "Because it felt crumbly!"),
 
     ("Why do seagulls fly over the ocean?",
-     "Because if they flew over the bay they'd be called bagels"),
-     
+     "If they flew over the bay they'd be called baygulls"),
+
     ("What do you call a bear with no teeth?",
      "A gummy bear!"),
 
@@ -36,7 +31,7 @@ JOKES = [
      "Because it wasn't peeling well!"),
 
     ("Why was 6 afraid of 7?",
-     "Because 7, 8, 9"),
+     "Because 7 ate 9"),
 
     ("What do you call cheese that isn't yours?",
      "Nacho cheese!"),
@@ -89,11 +84,8 @@ JOKES = [
     ("Why did the chicken join a band?",
      "Because it had the drumsticks!"),
 
-    ("What do you call a snowman with a six-pack?",
-     "An abdominal snowman!"),
-
     ("Why don't oysters share their pearls?",
-     "Because they're shelfish!"),
+     "Because they're shellfish!"),
 
     ("What did the left eye say to the right eye?",
      "Between you and me, something smells!"),
@@ -177,6 +169,12 @@ JOKES = [
      "Nothing, it just waved"),
 ]
 
+# Shuffle jokes once at module load for variety
+# MicroPython doesn't have random.shuffle, so we implement our own
+for i in range(len(JOKES) - 1, 0, -1):
+    j = random.randint(0, i)
+    JOKES[i], JOKES[j] = JOKES[j], JOKES[i]
+
 class JokeMachine:
     def __init__(self):
         # Initialize I2C for OLED display
@@ -194,7 +192,6 @@ class JokeMachine:
         self.last_back_button_state = 1
         self.forward_debounce_time = 0
         self.back_debounce_time = 0
-        self.last_auto_change_time = time.ticks_ms()
 
     def wrap_text(self, text, max_width=14):
         """Wrap text to fit display width (approximately 16 chars per line)"""
@@ -267,29 +264,13 @@ class JokeMachine:
         self.showing_answer = True
 
     def next_joke(self):
-        """Move to the next joke (sequential or random based on config)"""
-        if RANDOM_MODE:
-            # Pick a random joke (avoid showing the same joke twice in a row)
-            new_index = random.randint(0, len(JOKES) - 1)
-            while new_index == self.current_joke_index and len(JOKES) > 1:
-                new_index = random.randint(0, len(JOKES) - 1)
-            self.current_joke_index = new_index
-        else:
-            # Sequential mode - wrap around
-            self.current_joke_index = (self.current_joke_index + 1) % len(JOKES)
+        """Move to the next joke"""
+        self.current_joke_index = (self.current_joke_index + 1) % len(JOKES)
         self.show_question()
 
     def previous_joke(self):
-        """Move to the previous joke (sequential only - random mode uses random selection)"""
-        if RANDOM_MODE:
-            # In random mode, just pick a random joke
-            new_index = random.randint(0, len(JOKES) - 1)
-            while new_index == self.current_joke_index and len(JOKES) > 1:
-                new_index = random.randint(0, len(JOKES) - 1)
-            self.current_joke_index = new_index
-        else:
-            # Sequential mode - wrap around backwards
-            self.current_joke_index = (self.current_joke_index - 1) % len(JOKES)
+        """Move to the previous joke"""
+        self.current_joke_index = (self.current_joke_index - 1) % len(JOKES)
         self.show_question()
 
     def handle_button_press(self):
@@ -304,84 +285,35 @@ class JokeMachine:
         if forward_button_state == 0 and self.last_forward_button_state == 1:
             if time.ticks_diff(current_time, self.forward_debounce_time) > 200:
                 self.forward_debounce_time = current_time
-                # Reset auto timer when button is pressed
-                self.last_auto_change_time = current_time
 
                 if self.showing_answer:
-                    # If showing answer, go to next joke question
                     self.next_joke()
                 else:
-                    # If showing question, reveal answer
                     self.show_answer()
 
         # Handle back button press
         if back_button_state == 0 and self.last_back_button_state == 1:
             if time.ticks_diff(current_time, self.back_debounce_time) > 200:
                 self.back_debounce_time = current_time
-                # Reset auto timer when button is pressed
-                self.last_auto_change_time = current_time
 
                 if self.showing_answer:
-                    # If showing answer, go back to the question
                     self.show_question()
                 else:
-                    # If showing question, go to previous joke question
                     self.previous_joke()
 
         self.last_forward_button_state = forward_button_state
         self.last_back_button_state = back_button_state
 
-    def handle_auto_mode(self):
-        """Handle automatic cycling through jokes"""
-        current_time = time.ticks_ms()
-        elapsed = time.ticks_diff(current_time, self.last_auto_change_time)
-
-        # Convert AUTO_DISPLAY_TIME to milliseconds
-        auto_interval_ms = AUTO_DISPLAY_TIME * 1000
-
-        if elapsed >= auto_interval_ms:
-            self.last_auto_change_time = current_time
-
-            if self.showing_answer:
-                # If showing answer, go to next joke
-                self.next_joke()
-            else:
-                # If showing question, reveal answer
-                self.show_answer()
-
     def run(self):
         """Main loop"""
-        # Show initial joke question
         self.show_question()
 
-        mode_str = "AUTO" if AUTO_MODE else "BUTTON"
-        order_str = "RANDOM" if RANDOM_MODE else "SEQUENTIAL"
-        print(f"Joke Machine started in {mode_str} mode!")
-        print(f"Loaded {len(JOKES)} jokes ({order_str} order)")
-        if AUTO_MODE:
-            print(f"Auto-cycling every {AUTO_DISPLAY_TIME} seconds")
-
         while True:
-            # Always check for button press (works in both modes)
             self.handle_button_press()
-
-            # In auto mode, also handle automatic cycling
-            if AUTO_MODE:
-                self.handle_auto_mode()
-
-            time.sleep(0.01)  # Small delay to prevent busy-waiting
+            time.sleep(0.01)
 
 
 # Main entry point
 if __name__ == "__main__":
-    try:
-        machine = JokeMachine()
-        machine.run()
-    except Exception as e:
-        print(f"Error: {e}")
-        # Try to show error on display if possible
-        try:
-            import sys
-            sys.print_exception(e)
-        except:
-            pass
+    machine = JokeMachine()
+    machine.run()
